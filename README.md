@@ -1,6 +1,6 @@
 # Sleepless Owl
 ### What
-Sleepless Owl is an open-source project for the track site response time and define alerts.
+Sleepless Owl is an open-source project for tracking site response time and defining alerts.
 
 ### Project Architecture
 ![Project Architecture](docs/images/sleepless-owl-architecture.png)

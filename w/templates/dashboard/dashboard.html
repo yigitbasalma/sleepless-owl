@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ PAGE_TITLE }}</title>
+    <link rel="icon" sizes="192x192" href="/static/images/owl.webp" type="image/png">
+    <!-- Add Bootstrap CSS link -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/libs/@form-validation/umd/styles/index.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link href='https://fonts.googleapis.com/css?family=Roboto Slab' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/static/css/custom.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg mt-3">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <a href="/"><img src="/static/images/owl.webp" width="75" height="75"></a>
+        {% if current_user.is_authenticated %}
+        <div class="dropdown" style="position: relative;left: 83%;">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ current_user.first_name }} {{ current_user.last_name }}
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            {% if current_user.is_authenticated and authorize.has_role("admin") %}
+            <a class="dropdown-item" href="{{ url_for('agents.index') }}">Agents</a>
+            <a class="dropdown-item" href="{{ url_for('notification.index') }}">Notifications</a>
+            <a class="dropdown-item" href="{{ url_for('maintenance.index') }}">Maintenance</a>
+            <a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a>
+            {% endif %}
+            <a class="dropdown-item" href="{{ url_for('auth.user_logout') }}">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1300px;" data-toggle="modal" data-target="#register">Register</button>
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1320px;" data-toggle="modal" data-target="#login">Login</button>
+        {% endif %}
+      </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 1%;">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+          </ol>
+        </nav>
+
+        <div class="row" style="margin-top: %1;">
+          {% if current_user.is_authenticated and authorize.has_role("admin") %}
+          <div class="col-12">
+            <div class="dropdown" style="float: right; margin-bottom: 2%;">
+              <button class="btn btn-secondary dropdown-toggle" type="button" id="taskTypes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Crete New Task
+              </button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#newHttpTask">HTTP Task</a>
+                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#newTCPTask">TCP Task</a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <div class="accordion" id="monitors">
+              <div class="card">
+                {% for task in tasks %}
+                <div class="card-header" id="task-{{ task.id }}" style="height: 70px;">
+                  <div class="row" style="position: relative; top: -25%;">
+                    <div class="col-6" style="height: 10px;">
+                      <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#coll-{{ task.id }}" aria-expanded="true" aria-controls="coll-{{ task.id }}">
+                          {{ task.name }}<br>
+                          <span id="task-status-{{ task.id }}" class="badge badge-pill text-uppercase"></span>
+                          {% if task.type in ('http') and task.url.startswith('https') %}
+                          <span id="cert-status-{{ task.id }}" data-toggle="tooltip" data-placement="top" title="" class="badge badge-pill text-uppercase"></span>
+                          {% endif %}
+                          <span id="maintenance-status-{{ task.id }}" data-toggle="tooltip" data-placement="top" title="" class="badge badge-pill text-uppercase btn-info">In Maintenance</span>
+                        </button>
+                      </h2>
+                    </div>
+
+                    <div class="col-6">
+                      <span style="font-size: 10px; position: relative; top: -5%; font-weight: bolder">Type: </span><span class="text-muted" style="font-size: 10px; position: relative; top: -5%;">{{ task.type | upper }}</span><br>
+                      <span style="font-size: 10px; position: relative; top: -17%; font-weight: bolder">Target: </span><span class="text-muted" style="font-size: 10px; position: relative; top: -17%;">{{ task.url if task.type in ('http', ) else task.ip_address + ':' + task.port|string }}</span><br>
+                      <span style="font-size: 10px; position: relative; top: -28%; font-weight: bolder">Period: </span><span class="text-muted" style="font-size: 10px; position: relative; top: -28%;">{{ task.period }}/s</span>
+                      <span id="agent-success-ratio-{{ task.id }}" class="progress-bar" data-toggle="tooltip" data-placement="top" title=""></span>
+                    </div>
+                  </div>
+                </div>
+                <div id="coll-{{ task.id }}" class="collapse" aria-labelledby="task-{{ task.id }}" data-parent="#monitors">
+                  <input class="task-id" value="{{ task.id }}" hidden="hidden">
+                  <div style="margin-top: 1%; margin-left: 1%; z-index: 999;">
+                    <button onclick="task_logs('{{ task.id }}')" class="btn btn-secondary"><i class="fa-regular fa-file-lines"></i>&nbsp;Logs</button>
+                    {% if current_user.is_authenticated and authorize.has_role("admin") %}
+                    <button onclick="edit_{{ task.type }}_task('{{ task.id }}')" class="btn btn-secondary"><i class="fa-solid fa-pen-to-square"></i>&nbsp;Edit</button>
+                    <button onclick="delete_object('GET', '{{ url_for('tasks.delete_task', task_id=task.id) }}', '')" class="btn btn-danger"><i class="fa-solid fa-trash"></i>&nbsp;Delete</button>
+                    {% endif %}
+                  </div>
+                  <div class="card-body">
+                      <div>
+                        <span id="chart-title-{{ task.id }}" style="margin-left: 32%; font-weight: bolder;">Last 30 minute</span>
+                      </div>
+                      <a onclick="refreshData('30min', 'Last 30 minute')" href="#?" style="position: relative; left: 69%; top: 15%;"><i class="fa-solid fa-arrows-rotate"></i></a>
+                      <a style="position: relative; left: 70%; top: 15%;" href="#?" class="dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-regular fa-calendar"></i>
+                      </a>
+                      <div class="dropdown-menu">
+                        <a onclick="refreshData('1hour', 'Last 1 hour')" class="dropdown-item" href="#">Last Hour</a>
+                        <a onclick="refreshData('3hour', 'Last 3 hours')" class="dropdown-item" href="#">Last 3 Hour(s)</a>
+                        <a onclick="refreshData('6hour', 'Last 6 hours')" class="dropdown-item" href="#">Last 6 Hour(s)</a>
+                        <a onclick="refreshData('24hour', 'Last 24 hours')" class="dropdown-item" href="#">Last 24 Hour(s)</a>
+                        <a onclick="refreshData('1week', 'Last week')" class="dropdown-item" href="#">Last Week</a>
+                        <a onclick="refreshData('1month', 'Last month')" class="dropdown-item" href="#">Last Month</a>
+                        <a onclick="refreshData('1year', 'Last year')" class="dropdown-item" href="#">Last Year</a>
+                      </div>
+                      <div class="row">
+                        <div class="col-9">
+                          <canvas id="chart-{{ task.id }}"></canvas>
+                        </div>
+
+                        <div class="col-3">
+                          <div class="card" style="width: 100%; margin-top: 1%">
+                            <div class="card-body">
+                              <h5 id="current-response-time-{{ task.id }}" class="card-title"></h5>
+                              <h6 class="card-subtitle mb-2 text-muted">Avg. Response Time (30-Minute)</h6>
+                            </div>
+                          </div>
+                          <div class="card" style="width: 100%; margin-top: 1%">
+                            <div class="card-body">
+                              <h5 id="day-response-time-{{ task.id }}" class="card-title"></h5>
+                              <h6 class="card-subtitle mb-2 text-muted">Avg. Response Time (24-Hour)</h6>
+                            </div>
+                          </div>
+                          <div class="card" style="width: 100%; margin-top: 1%">
+                            <div class="card-body">
+                              <h5 id="day-uptime-{{ task.id }}" class="card-title"></h5>
+                              <h6 class="card-subtitle mb-2 text-muted">Uptime (24-Hour)</h6>
+                            </div>
+                          </div>
+                          <div class="card" style="width: 100%; margin-top: 1%">
+                            <div class="card-body">
+                              <h5 id="month-uptime-{{ task.id }}" class="card-title"></h5>
+                              <h6 class="card-subtitle mb-2 text-muted">Uptime (30-Day)</h6>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newHttpTask" tabindex="-1" role="dialog" aria-labelledby="newHttpTaskModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="newHttpTaskModalLabel">New HTTP Task</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" action="{{ url_for('tasks.create_new_http_task') }}" id="newHttpTaskForm">
+                {{ task_form.csrf_token }}
+              <div class="row">
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.name.id }}" class="col-form-label">{{ task_form.name.label.text }}:</label>
+                    {{ task_form.name }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.username.id }}" class="col-form-label">{{ task_form.username.label.text }}:</label>
+                    {{ task_form.username }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.password.id }}" class="col-form-label">{{ task_form.password.label.text }}:</label>
+                    {{ task_form.password }}
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label for="{{ task_form.return_codes.id }}" class="col-form-label">{{ task_form.return_codes.label.text }}:</label>
+                    {{ task_form.return_codes }}
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label for="{{ task_form.period.id }}" class="col-form-label">{{ task_form.period.label.text }}:</label>
+                    {{ task_form.period }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.agents.id }}" class="col-form-label">{{ task_form.agents.label.text }}:</label>
+                    {{ task_form.agents }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ task_form.url.id }}" class="col-form-label">{{ task_form.url.label.text }}:</label>
+                    {{ task_form.url }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.headers.id }}" class="col-form-label">{{ task_form.headers.label.text }}:</label>
+                    {{ task_form.headers }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.data.id }}" class="col-form-label">{{ task_form.data.label.text }}:</label>
+                    {{ task_form.data }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="editHttpTask" tabindex="-1" role="dialog" aria-labelledby="editHttpTaskModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editHttpTaskModalLabel">Edit HTTP Task <span id="edit-http-task-header" style="font-weight: bolder; font-style: italic; text-decoration: underline;"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" id="editHttpTaskForm">
+              {{ task_form.csrf_token(id="csrf_token-1") }}
+              <div class="row">
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.name.id }}-1" class="col-form-label">{{ task_form.name.label.text }}:</label>
+                    {{ task_form.name(id="name-1") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.username.id }}-1" class="col-form-label">{{ task_form.username.label.text }}:</label>
+                    {{ task_form.username(id="username-1") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.password.id }}-1" class="col-form-label">{{ task_form.password.label.text }}:</label>
+                    {{ task_form.password(id="password-1") }}
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label for="{{ task_form.return_codes.id }}-1" class="col-form-label">{{ task_form.return_codes.label.text }}:</label>
+                    {{ task_form.return_codes(id="return_codes-1") }}
+                  </div>
+                </div>
+                <div class="col-3">
+                  <div class="form-group">
+                    <label for="{{ task_form.period.id }}-1" class="col-form-label">{{ task_form.period.label.text }}:</label>
+                    {{ task_form.period(id="period-1") }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.agents.id }}-1" class="col-form-label">{{ task_form.agents.label.text }}:</label>
+                    {{ task_form.agents(id="agents-1") }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ task_form.url.id }}-1" class="col-form-label">{{ task_form.url.label.text }}:</label>
+                    {{ task_form.url(id="url-1") }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.headers.id }}-1" class="col-form-label">{{ task_form.headers.label.text }}:</label>
+                    {{ task_form.headers(id="headers-1") }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ task_form.data.id }}-1" class="col-form-label">{{ task_form.data.label.text }}:</label>
+                    {{ task_form.data(id="data-1") }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="newTCPTask" tabindex="-1" role="dialog" aria-labelledby="newTCPTaskModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="newTCPTaskModalLabel">New TCP Task</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" action="{{ url_for('tasks.create_new_tcp_task') }}" id="newTCPTaskForm">
+                {{ tcp_task_form.csrf_token(id="csrf_token-2") }}
+              <div class="row">
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.name.id }}-2" class="col-form-label">{{ tcp_task_form.name.label.text }}:</label>
+                    {{ tcp_task_form.name(id="name-2") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.ip_address.id }}" class="col-form-label">{{ tcp_task_form.ip_address.label.text }}:</label>
+                    {{ tcp_task_form.ip_address }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.port.id }}" class="col-form-label">{{ tcp_task_form.port.label.text }}:</label>
+                    {{ tcp_task_form.port }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.period.id }}-2" class="col-form-label">{{ task_form.period.label.text }}:</label>
+                    {{ task_form.period(id="period-2") }}
+                  </div>
+                </div>
+                <div class="col-8">
+                  <div class="form-group">
+                    <label for="{{ task_form.agents.id }}-2" class="col-form-label">{{ task_form.agents.label.text }}:</label>
+                    {{ task_form.agents(id="agents-2") }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="editTCPTask" tabindex="-1" role="dialog" aria-labelledby="editTCPTaskModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editTCPTaskModalLabel">Edit TCP Task <span id="edit-tcp-task-header" style="font-weight: bolder; font-style: italic; text-decoration: underline;"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" id="editTCPTaskForm">
+                {{ tcp_task_form.csrf_token(id="csrf_token-3") }}
+              <div class="row">
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.name.id }}-3" class="col-form-label">{{ tcp_task_form.name.label.text }}:</label>
+                    {{ tcp_task_form.name(id="name-3") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.ip_address.id }}-3" class="col-form-label">{{ tcp_task_form.ip_address.label.text }}:</label>
+                    {{ tcp_task_form.ip_address(id="ip_address-3") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ tcp_task_form.port.id }}-3" class="col-form-label">{{ tcp_task_form.port.label.text }}:</label>
+                    {{ tcp_task_form.port(id="port-3") }}
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="form-group">
+                    <label for="{{ task_form.period.id }}-3" class="col-form-label">{{ task_form.period.label.text }}:</label>
+                    {{ task_form.period(id="period-3") }}
+                  </div>
+                </div>
+                <div class="col-8">
+                  <div class="form-group">
+                    <label for="{{ task_form.agents.id }}-3" class="col-form-label">{{ task_form.agents.label.text }}:</label>
+                    {{ task_form.agents(id="agents-3") }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="taskLogs" tabindex="-1" role="dialog" aria-labelledby="taskLogsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="taskLogsModalLabel">Task Logs For <span id="task-logs-header" style="font-weight: bolder; font-style: italic; text-decoration: underline;"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <table id="task-logs-table" class="table">
+              <thead class="thead-light">
+                <tr>
+                  <th scope="col">Agent</th>
+                  <th scope="col">Created At</th>
+                  <th scope="col">Log</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Bootstrap JS and jQuery scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://malsup.github.io/jquery.blockUI.js"> </script>
+    <script src="/static/libs/@form-validation/umd/bundle/popular.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script src="/static/js/commons.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ PAGE_TITLE }}</title>
+    <link rel="icon" sizes="192x192" href="/static/images/owl.webp" type="image/png">
+    <!-- Add Bootstrap CSS link -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/libs/@form-validation/umd/styles/index.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href='https://fonts.googleapis.com/css?family=Roboto Slab' rel='stylesheet'>
+    <link rel="stylesheet" href="/static/css/custom.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg mt-3">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <a href="/"><img src="/static/images/owl.webp" width="75" height="75"></a>
+        {% if current_user.is_authenticated %}
+        <div class="dropdown" style="position: relative;left: 83%;">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ current_user.first_name }} {{ current_user.last_name }}
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            {% if current_user.is_authenticated and authorize.has_role("admin") %}
+            <a class="dropdown-item" href="{{ url_for('agents.index') }}">Agents</a>
+            <a class="dropdown-item" href="{{ url_for('notification.index') }}">Notifications</a>
+            <a class="dropdown-item" href="{{ url_for('maintenance.index') }}">Maintenance</a>
+            <a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a>
+            {% endif %}
+            <a class="dropdown-item" href="{{ url_for('auth.user_logout') }}">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1300px;" data-toggle="modal" data-target="#register">Register</button>
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1320px;" data-toggle="modal" data-target="#login">Login</button>
+        {% endif %}
+      </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 1%;">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Users</li>
+          </ol>
+        </nav>
+
+        <div class="row" style="margin-top: 4%;">
+            <div class="col-12">
+              <table class="table">
+                <thead class="thead-light">
+                  <tr>
+                    <th scope="col">First Name</th>
+                    <th scope="col">Last Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% if users %}
+                  {% for user in users %}
+                  <tr>
+                    <td>{{ user.first_name }}</td>
+                    <td>{{ user.last_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.human_readable_roles | title }}</td>
+                    <td style='white-space: nowrap'>
+                      <button onclick="delete_object('GET', '{{ url_for('users.delete_user', user_id=user.user_id) }}', '')" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Remove user">
+                          <i class="fa-solid fa-trash"></i>
+                      </button>
+                      <button onclick="request('GET', '{{ url_for('users.toggle_user_role', user_id=user.user_id) }}', '')" class="btn btn-secondary" data-toggle="tooltip" data-placement="top" title="Toggle user role">
+                          <i class="fa-solid fa-bolt-lightning"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" style="text-align: center">No users found</td>
+                  </tr>
+                {% endif %}
+                </tbody>
+              </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Bootstrap JS and jQuery scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://malsup.github.io/jquery.blockUI.js"> </script>
+    <script src="/static/libs/@form-validation/umd/bundle/popular.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
+    <script src="/static/js/commons.js"></script>
+    <script src="/static/js/users.js"></script>
+</body>
+</html>

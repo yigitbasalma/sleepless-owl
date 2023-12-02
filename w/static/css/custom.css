@@ -1,0 +1,22 @@
+body {
+    font-family: 'Roboto Slab';
+}
+
+a {
+    color: black;
+}
+
+.btn-link {
+    color: black;
+}
+
+.btn-link:hover {
+    color: gray;
+}
+
+.progress-bar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+

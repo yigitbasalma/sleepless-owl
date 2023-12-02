@@ -1,0 +1,7 @@
+logging:
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  level: "INFO"
+
+agent:
+  key: dc2958ce-4a8a-4c7b-b019-275b09accec1
+  backend: http://127.0.0.1:8080/api/v1/agent

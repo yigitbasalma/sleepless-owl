@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ PAGE_TITLE }}</title>
+    <link rel="icon" sizes="192x192" href="/static/images/owl.webp" type="image/png">
+    <!-- Add Bootstrap CSS link -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/libs/@form-validation/umd/styles/index.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href='https://fonts.googleapis.com/css?family=Roboto Slab' rel='stylesheet'>
+    <link rel="stylesheet" href="/static/css/custom.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg mt-3">
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <a href="/"><img src="/static/images/owl.webp" width="75" height="75"></a>
+        {% if current_user.is_authenticated %}
+        <div class="dropdown" style="position: relative;left: 83%;">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{ current_user.first_name }} {{ current_user.last_name }}
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            {% if current_user.is_authenticated and authorize.has_role("admin") %}
+            <a class="dropdown-item" href="{{ url_for('agents.index') }}">Agents</a>
+            <a class="dropdown-item" href="{{ url_for('notification.index') }}">Notifications</a>
+            <a class="dropdown-item" href="{{ url_for('maintenance.index') }}">Maintenance</a>
+            <a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a>
+            {% endif %}
+            <a class="dropdown-item" href="{{ url_for('auth.user_logout') }}">Logout</a>
+          </div>
+        </div>
+        {% else %}
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1300px;" data-toggle="modal" data-target="#register">Register</button>
+        <button class="btn btn-outline-secondary my-2 my-sm-0" style="position: relative;left: 1320px;" data-toggle="modal" data-target="#login">Login</button>
+        {% endif %}
+      </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 1%;">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Notification</li>
+          </ol>
+        </nav>
+
+        <div class="row" style="margin-top: 2%;">
+          <div class="col-12">
+            <nav>
+              <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                <button class="nav-link active" id="nav-providers-tab" data-toggle="tab" data-target="#nav-providers" type="button" role="tab" aria-controls="nav-providers" aria-selected="true">Providers&nbsp;&nbsp;<a data-toggle="modal" data-target="#newProvider"><i class="fa-solid fa-square-plus"></i></a></button>
+                <button class="nav-link" id="nav-rules-tab" data-toggle="tab" data-target="#nav-rules" type="button" role="tab" aria-controls="nav-rules" aria-selected="false">Rules&nbsp;&nbsp;<a data-toggle="modal" data-target="#newRule"><i class="fa-solid fa-square-plus"></i></a></button>
+              </div>
+            </nav>
+            <div class="tab-content" id="nav-tabContent">
+              <div class="tab-pane fade show active" id="nav-providers" role="tabpanel" aria-labelledby="nav-providers-tab">
+                <table class="table" style="margin-top: 2%;">
+                  <thead class="thead-light">
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Provider</th>
+                      <th scope="col">Config</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% if providers %}
+                    {% for provider in providers %}
+                    <tr>
+                      <td>{{ provider.name }}</td>
+                      <td>{{ provider.provider_name | title }}</td>
+                      <td>{{ provider.config }}</td>
+                      <td style='white-space: nowrap'>
+                        <button onclick="delete_object('GET', '{{ url_for('notification.delete_provider', provider_id=provider.id) }}', '')" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Remove provider">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <button onclick="update_provider('{{ provider.id }}', '{{ provider.name }}', '{{ provider.config }}')" class="btn btn-secondary" data-toggle="tooltip" data-placement="top" title="Modify config">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="5" style="text-align: center">No providers found</td>
+                    </tr>
+                  {% endif %}
+                  </tbody>
+                </table>
+              </div>
+              <div class="tab-pane fade" id="nav-rules" role="tabpanel" aria-labelledby="nav-rules-tab">
+                <table class="table" style="margin-top: 2%;">
+                  <thead class="thead-light">
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Provider</th>
+                      <th scope="col">Config</th>
+                      <th scope="col">Tasks</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% if rules %}
+                    {% for rule in rules %}
+                    <tr>
+                      <td>{{ rule.name }}</td>
+                      <td>{{ rule.providers.name | title }}</td>
+                      <td>{{ rule.config }}</td>
+                      <td>{{ rule.tasks | task_names }}</td>
+                      <td style='white-space: nowrap'>
+                        <button onclick="delete_object('GET', '{{ url_for('notification.delete_rule', rule_id=rule.id) }}', '')" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Remove rule">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <button onclick="update_rule('{{ rule.id }}', '{{ rule.name }}', '{{ rule.config }}', '{{ rule.tasks | get_for_js }}')" class="btn btn-secondary" data-toggle="tooltip" data-placement="top" title="Modify config">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="5" style="text-align: center">No rules found</td>
+                    </tr>
+                  {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newProvider" tabindex="-1" role="dialog" aria-labelledby="newProviderModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="newProviderModalLabel">New Provider</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" action="{{ url_for('notification.create_provider') }}" id="newProviderForm">
+                {{ provider_form.csrf_token }}
+              <div class="row">
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ provider_form.name.id }}" class="col-form-label">{{ provider_form.name.label.text }}:</label>
+                    {{ provider_form.name }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ provider_form.provider_name.id }}" class="col-form-label">{{ provider_form.provider_name.label.text }}:</label>
+                    {{ provider_form.provider_name }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ provider_form.config.id }}" class="col-form-label">{{ provider_form.config.label.text }}:</label>
+                    {{ provider_form.config }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="newRule" tabindex="-1" role="dialog" aria-labelledby="newRuleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="newRuleModalLabel">New Rule</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" action="{{ url_for('notification.create_rule') }}" id="newRuleForm">
+                {{ rule_form.csrf_token }}
+              <div class="row">
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ rule_form.name.id }}" class="col-form-label">{{ rule_form.name.label.text }}:</label>
+                    {{ rule_form.name }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ rule_form.provider_id.id }}" class="col-form-label">{{ rule_form.provider_id.label.text }}:</label>
+                    {{ rule_form.provider_id }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ rule_form.tasks.id }}" class="col-form-label">{{ rule_form.tasks.label.text }}:</label>
+                    {{ rule_form.tasks }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ rule_form.config.id }}" class="col-form-label">{{ rule_form.config.label.text }}:</label>
+                    {{ rule_form.config }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="updateProvider" tabindex="-1" role="dialog" aria-labelledby="updateProviderModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editProviderModalLabel">Edit Provider <span id="edit-provider-header" style="font-weight: bolder; font-style: italic; text-decoration: underline;"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" id="editProviderForm">
+              {{ provider_form.csrf_token(id="csrf_token-1") }}
+              <div class="row">
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ provider_form.name.id }}-1" class="col-form-label">{{ provider_form.name.label.text }}:</label>
+                    {{ provider_form.name(id="name-1") }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ provider_form.config.id }}-1" class="col-form-label">{{ provider_form.config.label.text }}:</label>
+                    {{ provider_form.config(id="config-1") }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="updateRule" tabindex="-1" role="dialog" aria-labelledby="updateRuleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editRuleModalLabel">Edit Rule <span id="edit-rule-header" style="font-weight: bolder; font-style: italic; text-decoration: underline;"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="POST" id="editRuleForm">
+              {{ rule_form.csrf_token(id="csrf_token-2") }}
+              <div class="row">
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ rule_form.name.id }}-2" class="col-form-label">{{ rule_form.name.label.text }}:</label>
+                    {{ rule_form.name(id="name-2") }}
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label for="{{ rule_form.tasks.id }}-2" class="col-form-label">{{ rule_form.tasks.label.text }}:</label>
+                    {{ rule_form.tasks(id="tasks-2") }}
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label for="{{ rule_form.config.id }}-2" class="col-form-label">{{ rule_form.config.label.text }}:</label>
+                    {{ rule_form.config(id="config-2") }}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-info">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Bootstrap JS and jQuery scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://malsup.github.io/jquery.blockUI.js"> </script>
+    <script src="/static/libs/@form-validation/umd/bundle/popular.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
+    <script src="/static/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="/static/js/commons.js"></script>
+    <script src="/static/js/notification.js"></script>
+</body>
+</html>

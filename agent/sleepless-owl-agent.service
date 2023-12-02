@@ -1,0 +1,13 @@
+[Unit]
+Description=Sleepless Owl Agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=sleepless-owl
+WorkingDirectory=/opt/sleepless-owl-agent
+ExecStart=/opt/sleepless-owl-agent/agent.py
+
+[Install]
+WantedBy=multi-user.target
